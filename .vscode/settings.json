@@ -1,0 +1,16 @@
+{
+    "dotnet.defaultSolution": "disable",
+    "omnisharp.enableEditorConfigSupport": true,
+    "omnisharp.enableImportCompletion": true,
+    "omnisharp.enableRoslynAnalyzers": true,
+    "[csharp]": {
+        "editor.defaultFormatter": "ms-dotnettools.csharp",
+        "editor.tabSize": 4,
+        "editor.insertSpaces": true,
+        "editor.detectIndentation": false
+    },
+    "files.exclude": {
+        "**/bin": true,
+        "**/obj": true
+    }
+}
