@@ -1,0 +1,35 @@
+@url = https://localhost:5001
+
+###
+# Status endpoint
+GET {{url}}/status
+
+###
+# Index knowledge
+POST {{url}}/knowledge
+Content-Type: application/json
+
+{
+    "content": "The Eiffel Tower is a wrought-iron lattice tower on the Champ de Mars in Paris, France. It is named after the engineer Gustave Eiffel, whose company designed and built the tower.",
+    "indexName": "test-index",
+    "title": "Eiffel Tower",
+    "category": "Landmarks",
+    "securityFilters": {
+        "group": "engineering"
+    }
+}
+
+###
+# Search knowledge
+POST {{url}}/knowledge/search
+Content-Type: application/json
+
+{
+    "query": "What is the Eiffel Tower?",
+    "indexName": "test-index",
+    "top": 5,
+    "includeContent": true,
+    "securityFilters": {
+        "group": "engineering"
+    }
+}

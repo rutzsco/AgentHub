@@ -1,7 +1,6 @@
 {
     "dotnet.defaultSolution": "disable",
     "omnisharp.enableEditorConfigSupport": true,
-    "omnisharp.enableImportCompletion": true,
     "omnisharp.enableRoslynAnalyzers": true,
     "[csharp]": {
         "editor.defaultFormatter": "ms-dotnettools.csharp",
@@ -12,5 +11,6 @@
     "files.exclude": {
         "**/bin": true,
         "**/obj": true
-    }
+    },
+    "dotnet.completion.showCompletionItemsFromUnimportedNamespaces": true
 }
