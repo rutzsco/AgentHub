@@ -11,6 +11,9 @@ builder.Services.AddSwaggerGen();
 // Configure Azure services using extension method
 builder.Services.AddAzureServices(builder.Configuration);
 
+// Register agents
+builder.Services.AddAgents();
+
 // Register Azure Search Service
 builder.Services.AddScoped<IAzureSearchService, AzureSearchService>();
 
@@ -89,5 +92,8 @@ app.MapPost("/knowledge/search", async (KnowledgeSearchRequest request, IAzureSe
 .WithOpenApi()
 .WithSummary("Search knowledge using hybrid vector search")
 .WithDescription("Performs hybrid search combining category filtering with vector similarity ranking on knowledge content in a specified Azure AI Search index");
+
+// Map agent endpoints
+app.MapAgentEndpoints();
 
 app.Run();

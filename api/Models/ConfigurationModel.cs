@@ -22,6 +22,11 @@ public class AzureOpenAIOptions
     public string ApiKey { get; set; } = string.Empty;
     
     /// <summary>
+    /// Name of the chat completion deployment
+    /// </summary>
+    public string ChatDeploymentName { get; set; } = "gpt-4";
+    
+    /// <summary>
     /// Name of the embedding deployment
     /// </summary>
     public string EmbeddingDeploymentName { get; set; } = "text-embedding-ada-002";

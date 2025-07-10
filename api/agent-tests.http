@@ -1,0 +1,39 @@
+@url = https://localhost:5001
+
+###
+# Status endpoint (for reference)
+GET {{url}}/status
+
+###
+# Image Analysis Agent - Complete Response (recommended for testing)
+POST {{url}}/agents/image-analysis
+Content-Type: application/json
+
+{
+    "message": "Analyze this text: What are the key concepts in machine learning?"
+}
+
+###
+# Image Analysis Agent - Text Analysis with ThreadId
+POST {{url}}/agents/image-analysis
+Content-Type: application/json
+
+{
+    "message": "Explain the benefits of using semantic kernel for AI applications",
+}
+
+###
+# Image Analysis Agent - Image Analysis (with base64 image data)
+POST {{url}}/agents/image-analysis
+Content-Type: application/json
+
+{
+    "message": "What do you see in this image? Please describe the contents in detail.",
+    "threadId": "image-analysis-001",
+    "files": [
+        {
+            "name": "sample-image.jpg",
+            "dataUrl": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
+        }
+    ]
+}

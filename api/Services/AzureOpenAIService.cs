@@ -2,6 +2,7 @@ using Azure;
 using Azure.AI.OpenAI;
 using Microsoft.Extensions.Options;
 using AgentHub.Api.Models;
+using OpenAI.Embeddings;
 
 namespace AgentHub.Api.Services;
 
@@ -12,7 +13,7 @@ public interface IAzureOpenAIService
 
 public class AzureOpenAIService : IAzureOpenAIService
 {
-    private readonly OpenAIClient _openAIClient;
+    private readonly AzureOpenAIClient _openAIClient;
     private readonly AzureOpenAIOptions _options;
     private readonly ILogger<AzureOpenAIService> _logger;
 
@@ -26,7 +27,7 @@ public class AzureOpenAIService : IAzureOpenAIService
             throw new InvalidOperationException("Azure OpenAI configuration is missing. Please provide Endpoint and ApiKey.");
         }
         
-        _openAIClient = new OpenAIClient(new Uri(_options.Endpoint), new AzureKeyCredential(_options.ApiKey));
+        _openAIClient = new AzureOpenAIClient(new Uri(_options.Endpoint), new AzureKeyCredential(_options.ApiKey));
     }
 
     public async Task<float[]> GetEmbeddingsAsync(string text)
@@ -38,16 +39,12 @@ public class AzureOpenAIService : IAzureOpenAIService
             // Clean and truncate text if needed (Azure OpenAI has token limits)
             var cleanedText = CleanText(text);
             
-            var embeddingsOptions = new EmbeddingsOptions(_options.EmbeddingDeploymentName, new[] { cleanedText });
+            // Get the embedding client for the specific deployment
+            var embeddingClient = _openAIClient.GetEmbeddingClient(_options.EmbeddingDeploymentName);
             
-            var response = await _openAIClient.GetEmbeddingsAsync(embeddingsOptions);
+            var response = await embeddingClient.GenerateEmbeddingAsync(cleanedText);
             
-            if (response.Value.Data.Count == 0)
-            {
-                throw new InvalidOperationException("No embeddings returned from Azure OpenAI");
-            }
-            
-            var embeddings = response.Value.Data[0].Embedding.ToArray();
+            var embeddings = response.Value.ToFloats().ToArray();
             
             _logger.LogDebug("Successfully generated embeddings with {Dimensions} dimensions", embeddings.Length);
             

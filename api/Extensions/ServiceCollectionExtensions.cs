@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using AgentHub.Api.Models;
+using AgentHub.Api.Agents;
 
 namespace AgentHub.Api.Extensions;
 
@@ -48,6 +49,15 @@ public static class ServiceCollectionExtensions
             }, "Azure Search configuration validation failed")
             .ValidateOnStart();
 
+        return services;
+    }
+
+    /// <summary>
+    /// Configures agent services
+    /// </summary>
+    public static IServiceCollection AddAgents(this IServiceCollection services)
+    {
+        services.AddScoped<ImageAnalysisAgent>();
         return services;
     }
 }

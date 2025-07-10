@@ -6,11 +6,21 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>AgentHub.Api</AssemblyName>
     <RootNamespace>AgentHub.Api</RootNamespace>
-  </PropertyGroup>  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Agents\ImageAnalysisAgentInstructions.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Agents\ImageAnalysisAgentInstructions.txt" />
+  </ItemGroup>  <ItemGroup>
+    <PackageReference Include="Azure.Identity" Version="1.14.1" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.18" />
+    <PackageReference Include="Microsoft.SemanticKernel" Version="1.60.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="8.1.4" />
     <PackageReference Include="Azure.Search.Documents" Version="11.6.0" />
-    <PackageReference Include="Azure.AI.OpenAI" Version="1.0.0-beta.17" />
+    <PackageReference Include="Azure.AI.OpenAI" Version="2.2.0-beta.4" />
   </ItemGroup>
 
 </Project>
