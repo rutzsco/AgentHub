@@ -1,0 +1,40 @@
+# .dockerignore
+# Exclude development and build artifacts
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/node_modules/
+**/npm-debug.log*
+
+# Exclude git and GitHub files
+.git/
+.github/
+.gitignore
+.gitattributes
+
+# Exclude documentation and configuration files
+README.md
+LICENSE
+*.md
+.editorconfig
+
+# Exclude test files
+**/TestResults/
+**/*Test*/
+**/*.Tests/
+
+# Exclude local environment files
+.env
+.env.local
+.env.*.local
+
+# Exclude OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Exclude IDE files
+*.swp
+*.swo
+*~
