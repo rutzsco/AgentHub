@@ -1,11 +1,15 @@
 using AgentHub.Api.Models;
 using AgentHub.Api.Services;
+using AgentHub.Api.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Configure Azure services using extension method
+builder.Services.AddAzureServices(builder.Configuration);
 
 // Register Azure Search Service
 builder.Services.AddScoped<IAzureSearchService, AzureSearchService>();

@@ -3,6 +3,7 @@ using Azure.Search.Documents;
 using Azure.Search.Documents.Indexes;
 using Azure.Search.Documents.Indexes.Models;
 using Azure.Search.Documents.Models;
+using Microsoft.Extensions.Options;
 using AgentHub.Api.Models;
 using System.Text.Json;
 
@@ -18,26 +19,25 @@ public interface IAzureSearchService
 public class AzureSearchService : IAzureSearchService
 {
     private readonly SearchIndexClient _indexClient;
-    private readonly IConfiguration _configuration;
+    private readonly AzureSearchOptions _options;
     private readonly ILogger<AzureSearchService> _logger;
     private readonly IAzureOpenAIService _openAIService;
 
-    public AzureSearchService(IConfiguration configuration, ILogger<AzureSearchService> logger, IAzureOpenAIService openAIService)
+    public AzureSearchService(IOptions<AzureSearchOptions> options, ILogger<AzureSearchService> logger, IAzureOpenAIService openAIService)
     {
-        _configuration = configuration;
+        _options = options.Value;
         _logger = logger;
         _openAIService = openAIService;
         
-        var endpoint = _configuration["AzureSearch:Endpoint"];
-        var apiKey = _configuration["AzureSearch:ApiKey"];
-        
-        if (string.IsNullOrEmpty(endpoint) || string.IsNullOrEmpty(apiKey))
+        if (string.IsNullOrEmpty(_options.Endpoint) || string.IsNullOrEmpty(_options.ApiKey))
         {
             throw new InvalidOperationException("Azure Search configuration is missing. Please provide Endpoint and ApiKey.");
         }
         
-        _indexClient = new SearchIndexClient(new Uri(endpoint), new AzureKeyCredential(apiKey));
-    }    public async Task<KnowledgeResponse> IndexKnowledgeAsync(KnowledgeRequest request)
+        _indexClient = new SearchIndexClient(new Uri(_options.Endpoint), new AzureKeyCredential(_options.ApiKey));
+    }
+
+    public async Task<KnowledgeResponse> IndexKnowledgeAsync(KnowledgeRequest request)
     {
         try
         {
@@ -107,7 +107,9 @@ public class AzureSearchService : IAzureSearchService
                 Message = ex.Message
             };
         }
-    }    public async Task<KnowledgeSearchResponse> SearchKnowledgeAsync(KnowledgeSearchRequest request)
+    }
+
+    public async Task<KnowledgeSearchResponse> SearchKnowledgeAsync(KnowledgeSearchRequest request)
     {
         try
         {
@@ -136,7 +138,8 @@ public class AzureSearchService : IAzureSearchService
             
             // Get the search client for the specific index
             var searchClient = _indexClient.GetSearchClient(request.IndexName);
-              // Build search options for hybrid search (text + vector)
+            
+            // Build search options for hybrid search (text + vector)
             var searchOptions = new SearchOptions
             {
                 Size = request.Top,
@@ -155,7 +158,8 @@ public class AzureSearchService : IAzureSearchService
             {
                 Queries = { vectorQuery }
             };
-              // Add select fields (exclude vector field as it's not needed in response)
+            
+            // Add select fields (exclude vector field as it's not needed in response)
             searchOptions.Select.Add("id");
             searchOptions.Select.Add("content");
             searchOptions.Select.Add("title");
@@ -212,7 +216,8 @@ public class AzureSearchService : IAzureSearchService
             {
                 searchOptions.Filter = string.Join(" and ", filters);
             }
-              // Perform hybrid search (text + vector)
+            
+            // Perform hybrid search (text + vector)
             string searchQuery = request.Query;
             if (string.IsNullOrWhiteSpace(searchQuery))
             {
@@ -222,7 +227,8 @@ public class AzureSearchService : IAzureSearchService
             var searchResults = await searchClient.SearchAsync<SearchDocument>(searchQuery, searchOptions);
             
             var results = new List<KnowledgeSearchResult>();
-              await foreach (var result in searchResults.Value.GetResultsAsync())
+            
+            await foreach (var result in searchResults.Value.GetResultsAsync())
             {
                 var searchResult = new KnowledgeSearchResult
                 {
@@ -281,7 +287,9 @@ public class AzureSearchService : IAzureSearchService
                 Query = request.Query
             };
         }
-    }    public async Task<bool> EnsureIndexExistsAsync(string indexName)
+    }
+
+    public async Task<bool> EnsureIndexExistsAsync(string indexName)
     {
         try
         {
@@ -314,15 +322,17 @@ public class AzureSearchService : IAzureSearchService
                 indexName, ex.GetType().Name, ex.Message);
             return false;
         }
-    }    private async Task CreateIndexAsync(string indexName)
+    }
+
+    private async Task CreateIndexAsync(string indexName)
     {
         try
         {
             _logger.LogInformation("Starting to create index: {IndexName}", indexName);
             
-            // Define vector search configuration
-            var vectorSearchProfile = new VectorSearchProfile("default-vector-profile", "default-vector-algorithm");
-            var vectorSearchAlgorithm = new HnswAlgorithmConfiguration("default-vector-algorithm");
+            // Define vector search configuration using options
+            var vectorSearchProfile = new VectorSearchProfile(_options.VectorSearchProfile, _options.VectorSearchAlgorithm);
+            var vectorSearchAlgorithm = new HnswAlgorithmConfiguration(_options.VectorSearchAlgorithm);
             
             var vectorSearch = new VectorSearch
             {
@@ -333,18 +343,19 @@ public class AzureSearchService : IAzureSearchService
             var fields = new List<SearchField>
             {
                 new SearchField("id", SearchFieldDataType.String) { IsKey = true, IsFilterable = true },
-                new SearchField("content", SearchFieldDataType.String) { IsFilterable = true }, // Not searchable, only for display
-                new SearchField("title", SearchFieldDataType.String) { IsFilterable = true, IsFacetable = true }, // Not searchable, only for display
+                new SearchField("content", SearchFieldDataType.String) { IsFilterable = true },
+                new SearchField("title", SearchFieldDataType.String) { IsFilterable = true, IsFacetable = true },
                 new SearchField("category", SearchFieldDataType.String) { IsSearchable = true, IsFilterable = true, IsFacetable = true },
                 new SearchField("createdAt", SearchFieldDataType.DateTimeOffset) { IsFilterable = true, IsSortable = true },
                 new SearchField("updatedAt", SearchFieldDataType.DateTimeOffset) { IsFilterable = true, IsSortable = true },
                 new SearchField("securityFilters", SearchFieldDataType.Collection(SearchFieldDataType.String)) { IsFilterable = true },
                 new SearchField("metadata", SearchFieldDataType.String) { IsFilterable = true },
-                // Vector field with proper configuration for text-embedding-ada-002 (1536 dimensions)
-                new VectorSearchField("text_vector", 1536, "default-vector-profile")
+                // Vector field with configurable dimensions
+                new VectorSearchField("text_vector", _options.VectorDimensions, _options.VectorSearchProfile)
             };
 
-            _logger.LogDebug("Created field definitions with {FieldCount} fields", fields.Count);
+            _logger.LogDebug("Created field definitions with {FieldCount} fields and {VectorDimensions} vector dimensions", 
+                fields.Count, _options.VectorDimensions);
 
             var definition = new SearchIndex(indexName, fields)
             {
@@ -383,7 +394,9 @@ public class AzureSearchService : IAzureSearchService
                 indexName, ex.GetType().Name, ex.Message, ex.StackTrace);
             throw;
         }
-    }private static Dictionary<string, object> ConvertToSearchDocument(KnowledgeDocument document, float[] embeddings)
+    }
+
+    private static Dictionary<string, object> ConvertToSearchDocument(KnowledgeDocument document, float[] embeddings)
     {
         var searchDocument = new Dictionary<string, object>
         {
@@ -432,7 +445,9 @@ public class AzureSearchService : IAzureSearchService
         }
 
         return searchDocument;
-    }    private static string EscapeODataString(string input)
+    }
+
+    private static string EscapeODataString(string input)
     {
         if (string.IsNullOrEmpty(input))
             return string.Empty;

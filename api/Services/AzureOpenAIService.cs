@@ -1,6 +1,7 @@
 using Azure;
 using Azure.AI.OpenAI;
-using System.Text.Json;
+using Microsoft.Extensions.Options;
+using AgentHub.Api.Models;
 
 namespace AgentHub.Api.Services;
 
@@ -12,25 +13,20 @@ public interface IAzureOpenAIService
 public class AzureOpenAIService : IAzureOpenAIService
 {
     private readonly OpenAIClient _openAIClient;
-    private readonly IConfiguration _configuration;
+    private readonly AzureOpenAIOptions _options;
     private readonly ILogger<AzureOpenAIService> _logger;
-    private readonly string _embeddingDeploymentName;
 
-    public AzureOpenAIService(IConfiguration configuration, ILogger<AzureOpenAIService> logger)
+    public AzureOpenAIService(IOptions<AzureOpenAIOptions> options, ILogger<AzureOpenAIService> logger)
     {
-        _configuration = configuration;
+        _options = options.Value;
         _logger = logger;
         
-        var endpoint = _configuration["AzureOpenAI:Endpoint"];
-        var apiKey = _configuration["AzureOpenAI:ApiKey"];
-        _embeddingDeploymentName = _configuration["AzureOpenAI:EmbeddingDeploymentName"] ?? "text-embedding-ada-002";
-        
-        if (string.IsNullOrEmpty(endpoint) || string.IsNullOrEmpty(apiKey))
+        if (string.IsNullOrEmpty(_options.Endpoint) || string.IsNullOrEmpty(_options.ApiKey))
         {
             throw new InvalidOperationException("Azure OpenAI configuration is missing. Please provide Endpoint and ApiKey.");
         }
         
-        _openAIClient = new OpenAIClient(new Uri(endpoint), new AzureKeyCredential(apiKey));
+        _openAIClient = new OpenAIClient(new Uri(_options.Endpoint), new AzureKeyCredential(_options.ApiKey));
     }
 
     public async Task<float[]> GetEmbeddingsAsync(string text)
@@ -42,7 +38,7 @@ public class AzureOpenAIService : IAzureOpenAIService
             // Clean and truncate text if needed (Azure OpenAI has token limits)
             var cleanedText = CleanText(text);
             
-            var embeddingsOptions = new EmbeddingsOptions(_embeddingDeploymentName, new[] { cleanedText });
+            var embeddingsOptions = new EmbeddingsOptions(_options.EmbeddingDeploymentName, new[] { cleanedText });
             
             var response = await _openAIClient.GetEmbeddingsAsync(embeddingsOptions);
             
@@ -64,7 +60,7 @@ public class AzureOpenAIService : IAzureOpenAIService
         }
     }
 
-    private static string CleanText(string text)
+    private string CleanText(string text)
     {
         if (string.IsNullOrWhiteSpace(text))
             return string.Empty;
@@ -73,13 +69,12 @@ public class AzureOpenAIService : IAzureOpenAIService
         text = text.Trim();
         text = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ");
         
-        // Truncate if too long (rough estimate for token limits)
-        // Azure OpenAI text-embedding-ada-002 has ~8192 token limit
-        // Rough estimate: 1 token ≈ 4 characters
-        const int maxLength = 30000; // Conservative estimate
-        if (text.Length > maxLength)
+        // Truncate if too long (use configurable max length)
+        if (text.Length > _options.MaxTextLength)
         {
-            text = text.Substring(0, maxLength);
+            text = text.Substring(0, _options.MaxTextLength);
+            _logger.LogWarning("Text truncated from {OriginalLength} to {MaxLength} characters", 
+                text.Length + (_options.MaxTextLength - text.Length), _options.MaxTextLength);
         }
         
         return text;
