@@ -1,0 +1,17 @@
+### Image Analysis Agent - Azure Blob Storage Tests
+
+@baseUrl = https://localhost:5001
+
+
+# Test with blob name (new functionality)
+POST {{baseUrl}}/agents/image-analysis
+Content-Type: application/json
+
+{
+  "message": "Analyze this image from blob storage",
+  "files": [
+    {
+      "blobName": "label1.jpeg"
+    }
+  ]
+}

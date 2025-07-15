@@ -20,6 +20,13 @@ builder.Services.AddScoped<IAzureSearchService, AzureSearchService>();
 // Register Azure OpenAI Service
 builder.Services.AddScoped<IAzureOpenAIService, AzureOpenAIService>();
 
+// Register Azure Blob Storage Service (only if configured)
+var blobStorageConfig = builder.Configuration.GetSection(AzureBlobStorageOptions.SectionName).Get<AzureBlobStorageOptions>();
+if (blobStorageConfig?.IsConfigured == true)
+{
+    builder.Services.AddScoped<IAzureBlobStorageService, AzureBlobStorageService>();
+}
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

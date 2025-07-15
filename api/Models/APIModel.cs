@@ -2,7 +2,7 @@
 {
     public record ChatThreadRequest(string Message, string? ThreadId = null, IEnumerable<ChatFile>? Files = null);
 
-    public record ChatFile(string Name, string DataUrl);
+    public record ChatFile(string Name, string? DataUrl = null, string? BlobName = null);
 
     public record ChatChunkResponse(ChatChunkContentType ContentType, string Content, ChatChunkResponseResult? FinalResult = null);
 
