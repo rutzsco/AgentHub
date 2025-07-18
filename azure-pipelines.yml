@@ -1,0 +1,79 @@
+# Azure DevOps Pipeline for Building and Pushing Container Image
+
+trigger:
+  # Run on pushes to the main branch
+  branches:
+    include:
+      - main
+
+pr:
+  # Also run on pull requests targeting the main branch to validate the build
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  # Define variables for container registry
+  containerRegistry: '$(CONTAINER_REGISTRY_URL)'
+  repository: '$(CONTAINER_REGISTRY_REPOSITORY_NAME)'
+  dockerfilePath: './Dockerfile'
+  buildContext: '.'
+  
+  # Set image tag based on branch
+  ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/main') }}:
+    imageTag: 'latest'
+  ${{ else }}:
+    imageTag: '$(Build.SourceVersion)'
+
+stages:
+- stage: Build
+  displayName: 'Build and Push Container Image'
+  jobs:
+  - job: BuildAndPush
+    displayName: 'Build and Push Docker Image'
+    steps:
+    - checkout: self
+      displayName: 'Checkout repository'
+      clean: 'true'
+
+    - task: Docker@2
+      displayName: 'Login to Container Registry'
+      inputs:
+        command: 'login'
+        containerRegistry: '$(containerRegistryServiceConnection)'
+
+    - task: Docker@2
+      displayName: 'Build Docker image'
+      inputs:
+        command: 'build'
+        Dockerfile: '$(dockerfilePath)'
+        buildContext: '$(buildContext)'
+        repository: '$(containerRegistry)/$(repository)'
+        tags: |
+          $(imageTag)
+          $(Build.SourceVersion)
+
+    - task: Docker@2
+      displayName: 'Push Docker image'
+      # Only push on main branch (not on pull requests)
+      condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+      inputs:
+        command: 'push'
+        repository: '$(containerRegistry)/$(repository)'
+        tags: |
+          $(imageTag)
+          $(Build.SourceVersion)
+
+    - task: PowerShell@2
+      displayName: 'Echo image details'
+      inputs:
+        targetType: 'inline'
+        script: |
+          Write-Host "Image repository: $(containerRegistry)/$(repository)"
+          Write-Host "Image tag: $(imageTag)"
+          Write-Host "Source version: $(Build.SourceVersion)"
+          Write-Host "Source branch: $(Build.SourceBranch)"
+          Write-Host "Build ID: $(Build.BuildId)"
